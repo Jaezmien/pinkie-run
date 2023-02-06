@@ -1,0 +1,432 @@
+(
+	pinkie.tal - Pinkie Run
+	A Pony-Themed Endless Runner // Jaezmien Naejara [https://jaezmien.github.io]
+)
+
+|00 @System [ &vector $2 &expansion $2 &title $2 &pad $2 &r $2 &g $2 &b $2 &debug $1 &state $1 ]
+|10 @Console [ &vector $2 &read $1 &pad $5 &write $1 ]
+|20 @Screen [ &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
+|80 @Controller [ &vector $2 &button $1 &key $1 ]
+|a0 @File [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+|c0 @DateTime [ &year $2 &month $1 &day $1 &hour $1 &minute $1 &second $1 &dotw $1 &doty $2 &isdst $1 ]
+
+%DISPLAY-WIDTH { #0050 }
+%DISPLAY-HEIGHT { #0050 }
+(
+	"why?"
+	well, I don't want to deal with the headaches of unsigned integer and positions
+	so i'm shifting the screen left 8 pixels to the left
+)
+%SCREEN-WIDTH { DISPLAY-WIDTH #0008 ADD2 }
+%SCREEN-HEIGHT { DISPLAY-HEIGHT #0008 ADD2 }
+%GROUND-HEIGHT { SCREEN-WIDTH #0020 SUB2 }
+%STAND-POS { GROUND-HEIGHT #0010 SUB2 }
+%RTN { JMP2r }
+%DEBUG { #01 .System/debug DEO }
+%8MOD { #07 AND } ( a -- a%8 )
+%MOD { DUP2 DIV MUL SUB } ( a b -- a%b )
+%BTS { #00 SWP } ( byte -- short )
+
+|0000
+	@death-timer $1
+	@score $1
+
+	@pinkie [
+		&timer $1
+		&x $2 &y $2
+		&velDir $1
+		&velVal $1
+		&jump $1
+	]
+	@balloon [
+		&timer $1
+		&x $2 &y $2
+		&active $1
+		&activeTimer $1
+		&current $1
+	]
+
+|0100
+	DISPLAY-WIDTH .Screen/width DEO2
+	DISPLAY-HEIGHT .Screen/height DEO2
+
+	;title .System/title DEO2
+
+	#6fe7 .System/r DEO2
+	#0b4d .System/g DEO2
+	#3d8e .System/b DEO2
+
+	;draw-ground JSR2
+
+	#0010 .pinkie/x STZ2
+	;reset-variables JSR2
+
+	;on-input .Controller/vector DEO2
+	;on-update .Screen/vector DEO2
+BRK
+
+( -- uxn funcs -- )
+
+@on-update
+	;clear-sprites JSR2
+	
+	.death-timer LDZ #00 NEQ ,&skip-update JCN
+		;update-pinkie JSR2
+		;update-balloon JSR2
+		
+		;handle-collision JSR2
+	&skip-update
+	.death-timer LDZ #00 EQU ,&skip-increment JCN
+		.death-timer LDZ #01 SUB DUP .death-timer STZ
+		( .death-timer ) #00 NEQ ,&skip-increment JCN
+			;reset-variables JSR2 ( reset game )
+	&skip-increment
+
+	;draw-score JSR2
+
+	;draw-balloon JSR2
+	#4a ;draw-pinkie JSR2
+BRK
+
+@on-input ( -> )
+	( Exit when user presses 'ESC' )
+	.Controller/key DEI
+	#1b EQU ;exit-game JCN2
+
+	( Is A pressed? )
+	.Controller/button DEI
+	#00 NEQ ,&continue-jump JCN
+		;handle-jump JSR2
+	&continue-jump
+BRK
+
+( -- funcs -- )
+
+@reset-variables
+	#00 .death-timer STZ
+	#00 .score STZ
+	STAND-POS .pinkie/y STZ2
+	#00 .pinkie/velDir STZ
+	#00 .pinkie/velVal STZ
+	#00 .pinkie/jump STZ
+	SCREEN-WIDTH .balloon/x STZ2
+	STAND-POS .balloon/y STZ2
+	#00 .balloon/active STZ
+	#40 .balloon/activeTimer STZ
+	#00 .balloon/current STZ
+RTN
+
+@get-pinkie-timer ( -> sTimer )
+	.pinkie/timer LDZ #02 SFT #03 AND
+RTN
+
+@get-jumping ( -> bJumping )
+	.pinkie/y LDZ2 STAND-POS LTH2
+RTN
+
+@get-pinkie-bottom-sprite ( -> sOffset )
+	;get-jumping JSR2 ,&set-walk1 JCN
+	;get-pinkie-timer JSR2
+
+	DUP #00 EQU OVR #02 EQU ORA ,&set-walk0 JCN
+	( timer ) #01 EQU ,&set-walk1 JCN
+	,&set-walk2 JMP
+
+	&set-walk0 POP #0000 JMP2r ( 0 || 2 )
+	&set-walk1 #0010 JMP2r ( 1 )
+	&set-walk2  #0020 JMP2r ( 3 )
+BRK
+
+@get-pinkie-offset ( -> sOffset )
+	;get-pinkie-timer JSR2
+
+	DUP #00 EQU OVR #02 EQU ORA ( timer offset )
+	NIP BTS
+RTN
+
+@get-pinkie-visual-y ( -> sPosition )
+	.pinkie/y LDZ2
+	;get-jumping JSR2 ,&ignore-offset JCN
+		;get-pinkie-offset JSR2 ADD2
+	&ignore-offset
+RTN
+
+@get-pinkie-sprite-flag ( bCurFlag bDeathTimer -> bFlag )
+	#00 EQU ,&no-flip-y-top JCN
+		#20 ADD
+	&no-flip-y-top
+RTN
+
+@get-balloon-bottom-sprite ( -> sOffset )
+	.balloon/timer LDZ #04 SFT #01 AND
+RTN
+
+@handle-jump ( -> )
+	;get-jumping JSR2 ,&ignore-jump JCN
+		#01 .pinkie/velDir STZ
+		#0b .pinkie/velVal STZ
+		#01 .pinkie/jump STZ
+	&ignore-jump
+RTN
+
+@update-pinkie ( -> )
+	( update sprite timer )
+	.pinkie/timer DUP LDZ INC SWP STZ
+
+	( update sprite position )
+	.pinkie/jump LDZ #00 EQU ,&after-frame-jump JCN
+		.pinkie/y DUP LDZ2 #0001 SUB2 ROT STZ2
+		#00 .pinkie/jump STZ
+	&after-frame-jump
+
+	;get-jumping JSR2 #00 EQU ,&after-jumping JCN
+		.pinkie/velVal LDZ .pinkie/velDir LDZ ,&move-up JCN ,&move-down JMP
+		&move-up
+			#01 SUB
+			DUP .pinkie/velVal STZ
+			DUP BTS .pinkie/y LDZ2 SWP2 #01 SFT2 SUB2 .pinkie/y STZ2
+			( .pinkie/velVal ) #00 EQU ,&set-moving-down JCN ,&after-jumping JMP
+			&set-moving-down
+				#00 .pinkie/velDir STZ
+				,&after-jumping JMP
+		&move-down
+			#01 ADD
+			DUP .pinkie/velVal STZ
+			( .pinkie/velVal ) BTS .pinkie/y LDZ2 SWP2 #01 SFT2 ADD2 .pinkie/y STZ2
+			;get-jumping JSR2 #00 EQU ,&set-grounded JCN ,&after-jumping JMP
+			&set-grounded
+				#00 .pinkie/velDir STZ
+				#00 .pinkie/velVal STZ
+				STAND-POS .pinkie/y STZ2
+				,&after-jumping JMP
+	&after-jumping
+RTN
+
+@update-balloon ( -> )
+	.balloon/timer DUP LDZ INC SWP STZ
+
+	.balloon/active LDZ ,&move-balloon JCN
+	( &update-timer )
+		.balloon/activeTimer LDZ #01 SUB DUP .balloon/activeTimer STZ
+		( .balloon/activeTimer ) #00 NEQ ,&continue JCN
+		( &spawn-balloon )
+			#01 .balloon/active STZ
+			.balloon/current LDZ INC .balloon/current STZ
+			,&continue JMP
+	&move-balloon
+		.balloon/x LDZ2 DUP2 #0002 SUB2 DUP2 .balloon/x STZ2
+		( prevVal newVal ) GTH2 ( a > b ) ,&continue JCN
+			SCREEN-WIDTH .balloon/x STZ2
+			#00 .balloon/active STZ
+
+			( randomize spawn time )
+			.balloon/current LDZ #07 MUL #0a MOD #02 MUL #05 ADD
+			.balloon/activeTimer STZ
+	
+	&continue
+RTN
+
+@handle-collision ( -> )
+	.balloon/active #00 EQU ,&no-collision JCN ( balloon is not active, don't bother checking )
+
+	( check x collision )
+	.balloon/x LDZ2 [ .pinkie/x LDZ2 #0009 ADD2 ] LTH2 ( Pinkie - Right )
+	#00 EQU ,&no-collision JCN
+	[ .balloon/x LDZ2 #0008 ADD2 ] .pinkie/x LDZ2 LTH2 ( Pinkie - Left )
+	#01 EQU ,&update-score JCN
+
+	( check y coord )
+	.pinkie/y LDZ2 #000b ADD2 .balloon/y LDZ2 GTH2
+	#00 EQU ,&no-collision JCN
+
+	( we have collided! )
+	#50 .death-timer STZ
+
+	,&no-collision JMP
+	&update-score
+	.balloon/current LDZ .score STZ
+	&no-collision
+RTN
+
+@hex-to-decimal ( bHex - bOnes bTens bHundreds )
+	( #00 STH )
+	DUP #64 DIV STH ( floor(x / 100) )
+	DUP #64 MOD #0a DIV STH ( floor(x % 100) / 10 )
+	#0a MOD STH ( x % 10 )
+
+	( STHr )
+	STHr STHr STHr
+RTN
+
+( -- draw funcs -- )
+
+@clear-sprites ( -> )
+	( Pinkie Pie )
+	#40 ;draw-pinkie JSR2
+
+	( Balloon )
+	#06 .Screen/auto DEO
+	.balloon/x LDZ2 #0008 SUB2 .Screen/x DEO2
+	.balloon/y LDZ2 .Screen/y DEO2
+	;sprite-balloon/t .Screen/addr DEO2
+	#40 .Screen/sprite DEOk
+	;sprite-balloon/b #00 ;get-balloon-bottom-sprite JSR2 #08 MUL ADD2 .Screen/addr DEO2
+	DEO
+RTN
+
+@draw-ground ( -> )
+	GROUND-HEIGHT
+	&loop-y
+		DUP2 .Screen/y DEO2
+
+		SCREEN-WIDTH #0000
+		&loop-x
+			DUP2 .Screen/x DEO2
+			#01 .Screen/pixel DEO
+			INC2 NEQ2k ,&loop-x JCN
+		POP2 POP2
+
+		INC2 DUP2 SCREEN-HEIGHT NEQ2 ,&loop-y JCN
+	POP2
+RTN
+
+@draw-pinkie ( bSpriteFlag -> )
+	STH
+	
+	( Set auto )
+	#05 .Screen/auto DEO
+
+	.death-timer LDZ #00 GTH STH
+
+	( Draw top half )
+	.pinkie/x LDZ2 #0008 SUB2 DUP2 .Screen/x DEO2
+	;get-pinkie-visual-y JSR2
+	DUPr STHr #00 EQU ,&continue-pinkie-y-top JCN
+		#0008 ADD2
+	&continue-pinkie-y-top
+	DUP2 .Screen/y DEO2
+	;sprite-pinkie/t .Screen/addr DEO2
+
+	DUP2r STH2r ;get-pinkie-sprite-flag JSR2
+	.Screen/sprite DEOk DEO
+
+	( Draw bottom half )
+	( .pinkie/y ) #0008
+	DUPr STHr #00 NEQ ,&offset-y-bottom JCN
+		ADD2 ,&continue-pinkie-y-bottom JMP
+		&offset-y-bottom SUB2
+	&continue-pinkie-y-bottom
+	.Screen/y DEO2
+	( .pinkie/x ) .Screen/x DEO2
+	;sprite-pinkie/b ;get-pinkie-bottom-sprite JSR2 ADD2 .Screen/addr DEO2
+	
+	DUP2r STH2r ;get-pinkie-sprite-flag JSR2
+	.Screen/sprite DEOk DEO
+
+	POPr ( death-timer )
+	POPr ( sprite flag )
+RTN
+
+@draw-balloon ( -> )
+	.balloon/active #00 EQU ,&stop-draw JCN
+		( Set auto )
+		#06 .Screen/auto DEO
+
+		( Draw top half )
+		.balloon/x LDZ2 #0008 SUB2 .Screen/x DEO2
+		.balloon/y LDZ2 .Screen/y DEO2
+		;sprite-balloon/t .Screen/addr DEO2
+		#43 .Screen/sprite DEOk
+
+		( Draw bottom half )
+		;sprite-balloon/b #00 ;get-balloon-bottom-sprite JSR2 #08 MUL ADD2 .Screen/addr DEO2
+		DEO
+	&stop-draw
+RTN
+
+@draw-score ( -> )
+	#05 .Screen/auto DEO
+	SCREEN-WIDTH #0024 SUB2 .Screen/x DEO2
+	#0004 .Screen/y DEO2
+
+	.score LDZ
+	;hex-to-decimal JSR2
+	#03
+	&loop
+		OVR
+			#10 ADD BTS #0008 MUL2 ;font ADD2 .Screen/addr DEO2
+			#01 .Screen/sprite DEO
+		NIP
+		#01 SUB DUP #00 NEQ ,&loop JCN
+	POP
+RTN
+
+( -- end -- )
+
+@exit-game LIT 01 .System/state DEO BRK
+
+( -- game assets -- )
+
+@title "Pinkie 20 "Run 00
+
+@sprite-pinkie [
+	&t 0000 0001 0101 397c 385e af63 7aa9 bcbc
+	&b  7067 2b25 ac6c 0c00 5090 f0f0 3030 3000
+		7067 2b25 9c38 3000 5090 f0f0 381c 0c00 ( jumping )
+		7067 2b25 b762 0100 5090 f0f0 70e0 c000
+]
+
+@sprite-balloon [
+	&t 3c76 7a7e 7a7e 3c00
+	&b 1800 1010 1008 0808 1800 0808 0810 1010
+]
+
+@font ( bbcmicro )
+	0000 0000 0000 0000 1818 1818 1800 1800
+	6c6c 6c00 0000 0000 3636 7f36 7f36 3600
+	0c3f 683e 0b7e 1800 6066 0c18 3066 0600
+	386c 6c38 6d66 3b00 0c18 3000 0000 0000
+	0c18 3030 3018 0c00 3018 0c0c 0c18 3000
+	0018 7e3c 7e18 0000 0018 187e 1818 0000
+	0000 0000 0018 1830 0000 007e 0000 0000
+	0000 0000 0018 1800 0006 0c18 3060 0000
+	3c66 6e7e 7666 3c00 1838 1818 1818 7e00
+	3c66 060c 1830 7e00 3c66 061c 0666 3c00
+	0c1c 3c6c 7e0c 0c00 7e60 7c06 0666 3c00
+	1c30 607c 6666 3c00 7e06 0c18 3030 3000
+	3c66 663c 6666 3c00 3c66 663e 060c 3800
+	0000 1818 0018 1800 0000 1818 0018 1830
+	0c18 3060 3018 0c00 0000 7e00 7e00 0000
+	3018 0c06 0c18 3000 3c66 0c18 1800 1800
+	3c66 6e6a 6e60 3c00 3c66 667e 6666 6600
+	7c66 667c 6666 7c00 3c66 6060 6066 3c00
+	786c 6666 666c 7800 7e60 607c 6060 7e00
+	7e60 607c 6060 6000 3c66 606e 6666 3c00
+	6666 667e 6666 6600 7e18 1818 1818 7e00
+	3e0c 0c0c 0c6c 3800 666c 7870 786c 6600
+	6060 6060 6060 7e00 6377 7f6b 6b63 6300
+	6666 767e 6e66 6600 3c66 6666 6666 3c00
+	7c66 667c 6060 6000 3c66 6666 6a6c 3600
+	7c66 667c 6c66 6600 3c66 603c 0666 3c00
+	7e18 1818 1818 1800 6666 6666 6666 3c00
+	6666 6666 663c 1800 6363 6b6b 7f77 6300
+	6666 3c18 3c66 6600 6666 663c 1818 1800
+	7e06 0c18 3060 7e00 7c60 6060 6060 7c00
+	0060 3018 0c06 0000 3e06 0606 0606 3e00
+	183c 6642 0000 0000 0000 0000 0000 00ff
+	1c36 307c 3030 7e00 0000 3c06 3e66 3e00
+	6060 7c66 6666 7c00 0000 3c66 6066 3c00
+	0606 3e66 6666 3e00 0000 3c66 7e60 3c00
+	1c30 307c 3030 3000 0000 3e66 663e 063c
+	6060 7c66 6666 6600 1800 3818 1818 3c00
+	1800 3818 1818 1870 6060 666c 786c 6600
+	3818 1818 1818 3c00 0000 367f 6b6b 6300
+	0000 7c66 6666 6600 0000 3c66 6666 3c00
+	0000 7c66 667c 6060 0000 3e66 663e 0607
+	0000 6c76 6060 6000 0000 3e60 3c06 7c00
+	3030 7c30 3030 1c00 0000 6666 6666 3e00
+	0000 6666 663c 1800 0000 636b 6b7f 3600
+	0000 663c 183c 6600 0000 6666 663e 063c
+	0000 7e0c 1830 7e00 0c18 1870 1818 0c00
+	1818 1800 1818 1800 3018 180e 1818 3000
+	316b 4600 0000 0000 ffff ffff ffff ffff
