@@ -173,6 +173,10 @@ RTN
 		#0b .pinkie/velVal STZ
 		#01 .pinkie/jump STZ
 	&ignore-jump
+
+	.death-timer LDZ #02 LTH ,&ignore-timer JCN
+		#01 .death-timer STZ
+	&ignore-timer
 RTN
 
 @update-pinkie ( -> )
