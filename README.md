@@ -8,7 +8,7 @@
   
 </div>
 
-- 💨 Press `A` (default bind: `Left Alt`) to Jump
+- 💨 Press `A` (default bind: `Left Alt`), or `Left Click` to Jump!
 - 🎈 Avoid hitting the balloons!
 - 🔢 Get a high score!
 
