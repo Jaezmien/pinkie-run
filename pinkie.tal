@@ -56,7 +56,7 @@
 
 	;draw-ground JSR2
 
-	#0010 .pinkie/x STZ2
+	SCREEN-WIDTH #02 SFT #0008 SUB2 .pinkie/x STZ2
 	;reset-variables JSR2
 
 	;on-controller-input .Controller/vector DEO2
