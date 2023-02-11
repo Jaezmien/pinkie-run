@@ -6,7 +6,6 @@
 |00 @System [ &vector $2 &expansion $2 &title $2 &pad $2 &r $2 &g $2 &b $2 &debug $1 &state $1 ]
 |20 @Screen [ &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
 |80 @Controller [ &vector $2 &button $1 &key $1 ]
-|90 @Mouse [ &vector $2 &x $2 &y $2 &state $1 &pad $3 &scrollx $2 &scrolly $2 ]
 
 %DISPLAY-WIDTH { #00f0 }
 %DISPLAY-HEIGHT { #00a0 }
@@ -61,7 +60,6 @@
 	;reset-variables JSR2
 
 	;on-controller-input .Controller/vector DEO2
-	;on-mouse-input .Mouse/vector DEO2
 	;on-update .Screen/vector DEO2
 BRK
 
@@ -101,13 +99,6 @@ BRK
 		&button-held
 		.button-held LDZ #01 EOR .button-held STZ
 	&continue-a-btn
-BRK
-
-@on-mouse-input ( -> )
-	.Mouse/state DEI
-	#01 NEQ ,&continue-mouse1 JCN
-		;handle-a-press JSR2
-	&continue-mouse1
 BRK
 
 ( -- funcs -- )
