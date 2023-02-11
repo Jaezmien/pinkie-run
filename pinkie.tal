@@ -27,7 +27,6 @@
 |0000
 	@death-timer $1
 	@score $1
-	@button-held $1
 
 	@pinkie [
 		&timer $1
@@ -93,11 +92,8 @@ BRK
 
 	( Is A pressed? )
 	.Controller/button DEI
-	#01 AND ,&continue-a-btn JCN
-		.button-held LDZ #00 NEQ ,&button-held JCN
-			;handle-a-press JSR2
-		&button-held
-		.button-held LDZ #01 EOR .button-held STZ
+	#01 AND #01 NEQ ,&continue-a-btn JCN
+		;handle-a-press JSR2
 	&continue-a-btn
 BRK
 
