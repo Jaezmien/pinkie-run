@@ -8,8 +8,8 @@
 |80 @Controller [ &vector $2 &button $1 &key $1 ]
 |90 @Mouse [ &vector $2 &x $2 &y $2 &state $1 &pad $3 &scrollx $2 &scrolly $2 ]
 
-%DISPLAY-WIDTH { #0050 }
-%DISPLAY-HEIGHT { #0050 }
+%DISPLAY-WIDTH { #00f0 }
+%DISPLAY-HEIGHT { #00a0 }
 (
 	"why?"
 	well, I don't want to deal with the headaches of unsigned integer and positions
