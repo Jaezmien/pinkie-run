@@ -12,12 +12,6 @@
 - 🎈 Avoid hitting the balloons!
 - 🔢 Get a high score!
 
-# 🐄 Notes
-
-Currently, I can't find any way to easily make an HTML build. For now, you have two options:
-- Grab yourself a [uxn emulator](https://git.sr.ht/~rabbits/uxn) and load the `.rom`.
-- Assemble the `.tal` soruce code in a web-based uxn emulator, such as [learn-uxn](https://metasyn.github.io/learn-uxn).
-
 # 📃 TODO
 - Persistent high score
 - Menu
