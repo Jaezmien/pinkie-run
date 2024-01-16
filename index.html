@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport"
+			  content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible"
+			  content="ie=edge">
+		<title>Pinkie Run</title>
+		<style>
+			@font-face {
+				font-family: 'Celestia Redux';
+				src: url('assets/CelestiaReduxMedium.woff2') format('woff2'),
+					url('assets/CelestiaReduxMedium.woff') format('woff');
+				font-weight: 500;
+				font-style: normal;
+				font-display: swap;
+			}
+
+			html {
+				background: #600030;
+				color: #f0b0d0;
+			}
+
+			a {
+				color: #70d0e0;
+				text-decoration: none;
+			}
+
+			a:visited {
+				color: #498893;
+			}
+
+			body {
+				margin: 0;
+				font-family: 'Celestia Redux';
+				font-style: normal;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			h1,
+			b {
+				color: #e04080;
+			}
+
+			header {
+				text-align: center;
+				padding-left: 1rem;
+				padding-right: 1rem;
+			}
+
+			footer {
+				display: flex;
+				flex-direction: row;
+				gap: 0.5rem;
+				place-content: center;
+				align-items: center;
+
+				text-align: center;
+				padding-left: 1rem;
+				padding-right: 1rem;
+			}
+
+			#pinkie-screen {
+				display: block;
+				margin-left: auto;
+				margin-right: auto;
+				width: 50%;
+				height: auto;
+				max-width: 600px;
+				aspect-ratio: 1 / 1;
+				border: #e04080 0.2rem solid;
+			}
+
+			@media (max-width: 768px) {
+				#pinkie-screen {
+					border: none;
+					width: 100%;
+				}
+			}
+
+			#pinkie-notes {
+				padding: 1rem;
+				width: fit-content;
+				margin-left: auto;
+				margin-right: auto;
+			}
+		</style>
+	</head>
+
+	<body>
+		<header>
+			<h1 id="pinkie-title">Pinkie Run</h1>
+		</header>
+
+		<iframe id="pinkie-screen"
+				src="pinkie.html"
+				alt="Pinkie Run"
+				width="200"
+				height="200"></iframe>
+
+		<div id="pinkie-notes">
+			<ul>
+				<li>
+					<p>🎮 <b>Left Ctrl</b> or <b>Left Click</b> to Jump!</p>
+				</li>
+				<li>
+					<p>🎈 Jump over the balloons!</p>
+				</li>
+				<li>
+					<p>💯 Get a high score!</p>
+				</li>
+			</ul>
+		</div>
+
+
+		<footer>
+			<p><a href="https://wiki.xxiivv.com/site/uxn.html">Uxn</a> + <a
+				   href="https://wiki.xxiivv.com/site/varvara.html">Varvara</a></p>
+			<p>|</p>
+			<p>Powered by the <a href="https://git.sr.ht/~rabbits/uxn5">Uxn5 Emulator</a></p>
+			<p>|</p>
+			<a href="https://github.com/Jaezmien/pinkie-run">Source Code</a>
+		</footer>
+	</body>
+
+</html>
